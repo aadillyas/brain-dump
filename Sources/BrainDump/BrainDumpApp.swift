@@ -18,12 +18,13 @@ struct BrainDumpApp: App {
         WindowGroup("Brain Dump") {
             RootView()
                 .environment(model)
-                .frame(minWidth: 640, minHeight: 480)
+                .frame(minWidth: 980, minHeight: 640)
         }
-        .defaultSize(width: 900, height: 700)
+        .defaultSize(width: 1180, height: 760)
         .commands {
             CommandGroup(after: .newItem) {
-                Button("Library") { model.showLibrary = true }.keyboardShortcut("l", modifiers: .command)
+                Button("Notes") { model.section = .notes; model.notesShowGraph = false }.keyboardShortcut("l", modifiers: .command)
+                Button("Graph") { model.openGraph() }.keyboardShortcut("g", modifiers: [.command, .shift])
             }
             CommandGroup(replacing: .help) {
                 Button("How to use Brain Dump") { model.showIntro = true }
@@ -42,8 +43,46 @@ struct RootView: View {
 
     var body: some View {
         @Bindable var model = model
-        return ZStack {
-            Theme.paper.ignoresSafeArea()
+        return NavigationSplitView {
+            List(selection: $model.section) {
+                Label {
+                    HStack {
+                        Text("Dump")
+                        if model.phase == .review {
+                            Circle().fill(Theme.accent).frame(width: 8, height: 8).help("A review is waiting")
+                        }
+                    }
+                } icon: { Image(systemName: "mic") }
+                    .tag(AppSection.dump)
+                Label("Review", systemImage: "calendar.badge.checkmark").tag(AppSection.review)
+                Label("Notes", systemImage: "note.text").tag(AppSection.notes)
+                Label("Journal", systemImage: "book").tag(AppSection.journal)
+            }
+            .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 240)
+        } detail: {
+            ZStack {
+                Theme.paper.ignoresSafeArea()
+                switch model.section {
+                case .dump: dump
+                case .review: WeeklyReviewView()
+                case .notes: NotesView()
+                case .journal: JournalView()
+                }
+            }
+        }
+        .toolbar {
+            ToolbarItemGroup {
+                Button { model.showIntro = true } label: { Label("Help", systemImage: "questionmark.circle") }
+                    .help("How to use Brain Dump")
+                SettingsLink { Label("Settings", systemImage: "gearshape") }
+                    .help("Settings")
+            }
+        }
+        .sheet(isPresented: $model.showIntro) { IntroView() }
+    }
+
+    private var dump: some View {
+        ZStack {
             switch model.phase {
             case .home: HomeView(ns: ns)
             case .canvas: CanvasView(ns: ns)
@@ -54,16 +93,6 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.25), value: model.phase)
-        .toolbar {
-            ToolbarItem {
-                if model.phase != .home {
-                    Button { model.showLibrary = true } label: { Label("Library", systemImage: "books.vertical") }
-                        .help("Open the Library")
-                }
-            }
-        }
-        .sheet(isPresented: $model.showLibrary) { LibraryView() }
-        .sheet(isPresented: $model.showIntro) { IntroView() }
     }
 }
 

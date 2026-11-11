@@ -13,32 +13,43 @@ public enum LinePrompt {
     /// so the model always sees which line it is labeling.
     public static let echoWords = 5
 
-    static let system = """
-    You read numbered lines from a spoken morning brain dump. Answer every line in order: its number, its first words, then -> and either skip or one item about that line.
-    Most lines are just talk: skip them.
-    task = work the speaker must do today or soon.
-    reminder = a personal errand or thing the speaker must not forget.
-    idea = a new creative or project idea the speaker wants to keep.
-    thought = a reflection or worry worth keeping, not something to do.
-    Always skip: things already done, things that happened in the past, other people's jobs, plans that are only maybe or someday, filler.
-    Item format: kind | title | when. The title is a short command for a task or reminder, a short noun phrase for an idea or thought. When is the words from the line that say when, or nothing.
-    """
+    /// The instructions, built from the user's categories.
+    public static func system(_ categories: [ItemCategory]) -> String {
+        var out = """
+        You read numbered lines from a spoken morning brain dump. Answer every line in order: its number, its first words, then -> and either skip or one item about that line.
+        Most lines are just talk: skip them.
 
+        """
+        for c in categories {
+            out += "\(c.id) = \(c.definition)"
+            if !c.examples.isEmpty { out += " E.g. " + c.examples.map { "\"\($0)\"" }.joined(separator: " ") }
+            out += "\n"
+        }
+        out += """
+        Always skip: things already done, things that happened in the past, other people's jobs, wishes and plans that are only maybe or someday (one day, would be nice, we'll see), filler.
+        Item format: kind | title | when. The title is a short command for something to do; for a note, a short noun phrase naming its subject (the project, person or theme). When is the words from the line that say when, or nothing.
+        """
+        return out
+    }
+
+    /// Labels use the built-in category ids; a label whose category is disabled or deleted becomes skip.
     static let examples: [(lines: [String], answer: [String])] = [
         ([
             "Okay so it's Tuesday, I slept badly again, um, the neighbor's dog was barking at like four.",
             "First thing, I need to send the invoice to Marco before noon because he's been chasing me.",
             "Oh and I have to pick up my prescription from the pharmacy on the way home.",
             "I already booked the flights for March, so that's done.",
+            "Then there's the call with the landlord at four about the lease.",
             "Sara said she'd handle the client deck, so not my problem.",
             "What if we made the onboarding a little game, like a quest map for new users?",
         ], [
             "skip",
-            "task | Send the invoice to Marco | before noon",
-            "reminder | Pick up prescription from the pharmacy |",
+            "todo | Send the invoice to Marco | before noon",
+            "todo | Pick up prescription from the pharmacy |",
             "skip",
+            "event | Call with the landlord about the lease | at four",
             "skip",
-            "idea | Onboarding as a quest map game |",
+            "note | Onboarding as a quest map game |",
         ]),
         ([
             "Right, personal stuff.",
@@ -53,8 +64,8 @@ public enum LinePrompt {
             "skip",
             "skip",
             "skip",
-            "reminder | Renew the car insurance | before the twelfth",
-            "thought | More tired than I admit |",
+            "todo | Renew the car insurance | before the twelfth",
+            "note | More tired than I admit |",
             "skip",
         ]),
         ([
@@ -62,15 +73,17 @@ public enum LinePrompt {
             "I got the report out in the end though, which, yeah, good.",
             "It's Mum's birthday on Saturday, so I need to order her flowers by Thursday.",
             "Uh, the printer's broken again but Dave said he'd call the repair guy.",
+            "The dentist moved me to Thursday at ten, so that's in.",
             "And I should, no wait, I need to finish the Q3 slides for the Friday review.",
             "What if the team wiki had a page of small wins every week?",
         ], [
             "skip",
             "skip",
-            "reminder | Order flowers for Mum's birthday | by Thursday",
+            "todo | Order flowers for Mum's birthday | by Thursday",
             "skip",
-            "task | Finish the Q3 slides | Friday",
-            "idea | Weekly small wins page on the team wiki |",
+            "event | Dentist appointment | Thursday at ten",
+            "todo | Finish the Q3 slides | Friday",
+            "note | Weekly small wins page on the team wiki |",
         ]),
     ]
 
@@ -88,11 +101,16 @@ public enum LinePrompt {
             .joined(separator: "\n")
     }
 
-    public static func turns(for lines: [String]) -> [ChatTurn] {
-        var turns = [ChatTurn(.system, system)]
+    public static func turns(for lines: [String], categories: [ItemCategory] = ItemCategory.defaults) -> [ChatTurn] {
+        var turns = [ChatTurn(.system, system(categories))]
+        let ids = Set(categories.map(\.id))
         for example in examples {
+            let labels = example.answer.map { label in
+                let kind = label.split(separator: " ").first.map(String.init) ?? "skip"
+                return kind == "skip" || ids.contains(kind) ? label : "skip"
+            }
             turns.append(ChatTurn(.user, numbered(example.lines)))
-            turns.append(ChatTurn(.assistant, answer(example.lines, example.answer)))
+            turns.append(ChatTurn(.assistant, answer(example.lines, labels)))
         }
         turns.append(ChatTurn(.user, numbered(lines)))
         return turns
@@ -102,7 +120,7 @@ public enum LinePrompt {
         line.split(whereSeparator: { $0.isWhitespace }).count
     }
 
-    public static func grammar(for lines: [String]) -> String {
+    public static func grammar(for lines: [String], categories: [ItemCategory] = ItemCategory.defaults) -> String {
         var rules: [String] = []
         let names = lines.indices.map { "l\($0 + 1)" }
         rules.append("root ::= " + names.joined(separator: " \"\\n\" "))
@@ -115,7 +133,7 @@ public enum LinePrompt {
         }
         rules.append(contentsOf: [
             "entry ::= \"skip\" | kind \" | \" title \" |\" when",
-            "kind ::= \"task\" | \"reminder\" | \"idea\" | \"thought\"",
+            "kind ::= " + categories.map { "\"\($0.id)\"" }.joined(separator: " | "),
             "title ::= [^| \\n] tchar{0,\(maxTitleChars - 1)}",
             "when ::= ( \" \" [^| \\n] tchar{0,\(maxWhenChars - 1)} )?",
             "tchar ::= [^|\\n]",

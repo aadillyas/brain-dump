@@ -25,14 +25,15 @@ public enum CloudLLMError: LocalizedError {
     }
 }
 
-/// Anthropic Messages API over HTTPS. Ignores GBNF grammars and constrains output with `outputSchema` instead.
+/// Anthropic Messages API over HTTPS. Ignores GBNF grammars; the line format is followed from the few-shot turns
+/// and checked by the validator.
 public struct CloudLLM: LLMProvider {
     public static let defaultModel = "claude-opus-5-5"
 
     public let apiKey: String
     public let model: String
     /// JSON schema string sent as the structured output format; nil sends none.
-    public var outputSchema: String? = ExtractionPrompt.jsonSchema
+    public var outputSchema: String?
     public var endpoint = URL(string: "https://api.anthropic.com/v1/messages")!
 
     public init(apiKey: String, model: String = CloudLLM.defaultModel) {

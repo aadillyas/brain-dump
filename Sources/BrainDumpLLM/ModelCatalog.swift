@@ -49,20 +49,27 @@ public enum ModelCatalog {
         LocalModel(
             id: "lfm2.5-1.2b", name: "LFM2.5 1.2B Instruct",
             url: hf("LiquidAI/LFM2.5-1.2B-Instruct-GGUF", "LFM2.5-1.2B-Instruct-Q4_K_M.gguf"), sizeMB: 731,
-            note: "Recommended. 731 MB, ~60 tok/s. Dev recall 90%, precision 55%; holdout 95% / 62%."),
+            note: "731 MB, ~60 tok/s. Dev recall 90%, precision 55%; holdout 95% / 62%."),
         LocalModel(
             id: "lfm3-1.7b", name: "LFM3 1.7B",
             url: hf("LiquidAI/LFM3-1.7B-GGUF", "LFM3-1.7B-Q4_K_M.gguf"), sizeMB: 1100,
-            note: "1.1 GB, ~37 tok/s. Best kind accuracy (97%); measured only with the first prompt (recall 78%, precision 48%)."),
+            note: "Runs on any Apple Silicon Mac. Catches slightly more than Apple's model, with more suggestions to dismiss."),
         LocalModel(
             id: "qwen3.5-2b", name: "Qwen3.5 2B",
             url: hf("unsloth/Qwen3.5-2B-GGUF", "Qwen3.5-2B-Q4_K_M.gguf"), sizeMB: 1280,
             note: "1.3 GB. Not evaluated."),
     ]
 
-    public static var defaultModel: LocalModel { model(id: "lfm2.5-1.2b")! }
+    public static var defaultModel: LocalModel { model(id: "lfm3-1.7b")! }
 
     public static func model(id: String) -> LocalModel? { all.first { $0.id == id } }
+
+    /// Downloaded model files other than `defaultModel`, which the app no longer offers (the eval still can).
+    public static var unusedDownloads: [URL] {
+        let keep = localURL(for: defaultModel).lastPathComponent
+        let files = (try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
+        return files.filter { $0.pathExtension == "gguf" && $0.lastPathComponent != keep }
+    }
 
     /// ~/Library/Application Support/BrainDump/Models
     public static var directory: URL {

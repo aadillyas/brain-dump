@@ -15,6 +15,7 @@ enum Prefs {
         static let timerSeconds = "timerSeconds"
         static let remindersEnabled = "connectorRemindersEnabled"
         static let notesEnabled = "connectorNotesEnabled"
+        static let calendarEnabled = "connectorCalendarEnabled"
         static let introSeen = "introSeen"
     }
 
@@ -27,9 +28,21 @@ enum Prefs {
 
     static var useCloud: Bool { d.bool(forKey: Key.useCloud) }
 
-    static var localModel: LocalModel {
-        d.string(forKey: Key.localModelID).flatMap { ModelCatalog.model(id: $0) } ?? ModelCatalog.defaultModel
+    /// Stored in `localModelID` alongside the GGUF model's id.
+    static let appleModelID = "apple"
+
+    /// The model the app runs: Apple's or LFM3. Nothing stored, or a model the app no longer offers,
+    /// means Apple's model when this Mac supports it and LFM3 otherwise.
+    static var modelChoice: String {
+        let stored = d.string(forKey: Key.localModelID) ?? ""
+        if stored == appleModelID || stored == ModelCatalog.defaultModel.id { return stored }
+        return Pipeline.appleAvailable ? appleModelID : ModelCatalog.defaultModel.id
     }
+
+    static var useApple: Bool { modelChoice == appleModelID }
+
+    /// The GGUF model to run, and the fallback when Apple's model is selected.
+    static var localModel: LocalModel { ModelCatalog.defaultModel }
 
     static var cloudModel: String {
         let m = d.string(forKey: Key.cloudModel) ?? ""
@@ -59,6 +72,8 @@ enum Prefs {
 
     static var remindersEnabled: Bool { (d.object(forKey: Key.remindersEnabled) as? Bool) ?? true }
     static var notesEnabled: Bool { (d.object(forKey: Key.notesEnabled) as? Bool) ?? true }
+    static var calendarEnabled: Bool { (d.object(forKey: Key.calendarEnabled) as? Bool) ?? true }
+
 
     static var introSeen: Bool {
         get { d.bool(forKey: Key.introSeen) }

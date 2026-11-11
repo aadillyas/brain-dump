@@ -7,7 +7,6 @@ struct HomeView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            topBar
             ScrollView {
                 VStack(alignment: .leading, spacing: 28) {
                     VStack(alignment: .leading, spacing: 6) {
@@ -31,24 +30,6 @@ struct HomeView: View {
             }
         }
         .onAppear { model.loadHome() }
-    }
-
-    private var topBar: some View {
-        HStack(spacing: 14) {
-            Spacer()
-            Button { model.showLibrary = true } label: { Label("Library", systemImage: "books.vertical") }
-                .help("Open the Library")
-            Button { model.showIntro = true } label: { Image(systemName: "questionmark.circle") }
-                .help("How to use Brain Dump")
-            SettingsLink { Image(systemName: "gearshape") }
-                .help("Settings")
-        }
-        .buttonStyle(.plain)
-        .labelStyle(.titleAndIcon)
-        .font(.system(size: 14))
-        .foregroundStyle(.secondary)
-        .padding(.horizontal, 24)
-        .padding(.top, 14)
     }
 
     private var dumpBar: some View {

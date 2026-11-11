@@ -3,22 +3,22 @@ import BrainDumpCore
 import SwiftUI
 
 extension ItemKind {
-    /// The three kinds the user sees: task and reminder are both a To-do.
-    static let displayCases: [ItemKind] = [.task, .idea, .thought]
+    /// Enabled categories, in the user's order: what the review menus offer.
+    static var displayCases: [ItemKind] { ItemCategory.defaults.enabled.map(\.kind) }
+
+    var category: ItemCategory? { ItemCategory.defaults.category(for: self) }
+    var label: String { category?.name ?? rawValue.capitalized }
+    var symbol: String { category?.symbol ?? "tag" }
+    var isActionable: Bool { category?.isActionable ?? false }
 
     var color: Color {
         switch self {
-        case .task, .reminder: return .blue
-        case .idea: return .orange
-        case .thought: return .purple
-        }
-    }
-
-    var symbol: String {
-        switch self {
-        case .task, .reminder: return "checkmark.circle"
-        case .idea: return "lightbulb"
-        case .thought: return "bubble.left"
+        case .todo: return .blue
+        case .event: return .red
+        case .note: return .orange
+        default:
+            let palette: [Color] = [.teal, .green, .pink, .indigo, .brown, .mint]
+            return palette[abs(rawValue.unicodeScalars.reduce(0) { $0 &* 31 &+ Int($1.value) }) % palette.count]
         }
     }
 }
@@ -191,10 +191,15 @@ struct Sidebar: View {
                 .padding(20)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 10) {
+                    // A plain VStack: LazyVStack sometimes skipped drawing cards inserted with a transition
+                    // until something else changed the layout, so found items looked missing.
+                    VStack(spacing: 10) {
                         ForEach($model.review) { $entry in
                             ReviewCard(entry: $entry)
                                 .transition(.move(edge: .trailing).combined(with: .opacity))
+                        }
+                        if model.review.isEmpty, case .processing = model.phase {
+                            RotatingQuote().padding(.top, 40).padding(.horizontal, 6)
                         }
                     }
                     .padding(14)
@@ -222,14 +227,21 @@ struct Sidebar: View {
     }
 
     private var footer: some View {
-        let n = model.review.filter { $0.selected && model.destination(for: $0.item) != nil }.count
+        let pending = model.review.filter { $0.isAction && $0.status == .pending && model.destination(for: $0.item) != nil }.count
         return VStack(spacing: 8) {
-            Button("Apply all approved (\(n))", action: model.apply)
-                .keyboardShortcut(.return, modifiers: .command)
-                .disabled(n == 0)
-                .controlSize(.large)
-                .frame(maxWidth: .infinity)
-            Button("Skip all", action: model.skipAll).buttonStyle(.link).font(.system(size: 12))
+            if pending > 0 {
+                Button("Add all \(pending) remaining", action: model.approveAll)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity)
+            }
+            if pending > 0 {
+                Button("Finish without the rest", action: model.finish).buttonStyle(.link).font(.system(size: 12))
+            } else {
+                Button("Done", action: model.finish)
+                    .keyboardShortcut(.return, modifiers: .command)
+                    .buttonStyle(.borderedProminent)
+                    .controlSize(.large)
+            }
         }
         .padding(14)
     }
@@ -250,12 +262,18 @@ struct ReviewCard: View {
     @Binding var entry: ReviewEntry
     @State private var showDate = false
 
+    private var done: Bool { entry.status == .done }
+    private var dismissed: Bool { entry.status == .dismissed }
+    private var working: Bool { entry.status == .working }
+    /// Actions can still be edited before ✓; notes can always be retitled until review ends.
+    private var editable: Bool { model.phase == .review && (entry.status == .pending || !entry.isAction) }
+
     var body: some View {
         let focused = model.focusedItem == entry.id
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 kindMenu
-                if entry.item.lowConfidence {
+                if entry.item.lowConfidence && !done {
                     Text("unsure")
                         .font(.system(size: 10, weight: .medium))
                         .padding(.horizontal, 6).padding(.vertical, 2)
@@ -263,16 +281,7 @@ struct ReviewCard: View {
                         .foregroundStyle(.orange)
                 }
                 Spacer()
-                Button { entry.selected = false } label: {
-                    Image(systemName: "xmark.circle\(entry.selected ? "" : ".fill")")
-                }
-                .help("Dismiss")
-                .foregroundStyle(entry.selected ? Color.secondary : Color.red)
-                Button { entry.selected = true } label: {
-                    Image(systemName: "checkmark.circle\(entry.selected ? ".fill" : "")")
-                }
-                .help("Approve")
-                .foregroundStyle(entry.selected ? Color.green : Color.secondary)
+                controls
             }
             .buttonStyle(.plain)
             .font(.system(size: 17))
@@ -281,63 +290,100 @@ struct ReviewCard: View {
             TextField("Title", text: $entry.item.title)
                 .textFieldStyle(.plain)
                 .font(.system(size: 15, weight: .medium))
-            if entry.item.kind.isActionable { dueChip } else { relatedChips }
-            destinationChip
+                .disabled(!editable || (entry.isAction && entry.status != .pending))
+            if entry.isAction { dueChip.disabled(entry.status != .pending) }
+            statusLine
         }
         .padding(12)
         .background(.background.opacity(0.7), in: RoundedRectangle(cornerRadius: 10))
-        .overlay(RoundedRectangle(cornerRadius: 10).stroke(focused ? entry.item.kind.color.opacity(0.7) : Color.primary.opacity(0.08), lineWidth: focused ? 1.5 : 1))
-        .opacity(entry.selected ? 1 : 0.55)
+        .overlay(RoundedRectangle(cornerRadius: 10).stroke(
+            done ? Color.green.opacity(0.45) : (focused ? entry.item.kind.color.opacity(0.7) : Color.primary.opacity(0.08)),
+            lineWidth: focused || done ? 1.5 : 1))
+        .opacity(dismissed ? 0.45 : 1)
         .contentShape(Rectangle())
         .onHover { model.focusedItem = $0 ? entry.id : (model.focusedItem == entry.id ? nil : model.focusedItem) }
         .onTapGesture { model.focusedItem = entry.id }
     }
 
-    private var relatedChips: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ForEach(model.related[entry.id] ?? []) { choice in
-                HStack(spacing: 6) {
-                    Button { model.toggleRelated(item: entry.id, note: choice.note.url) } label: {
-                        Image(systemName: choice.approved ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(choice.approved ? Color.green : Color.secondary)
-                    }
-                    .buttonStyle(.plain)
-                    .help(choice.approved ? "Linking both notes" : "Link both notes")
-                    .disabled(model.phase != .review)
-                    Button { model.openNote(choice.note.url) } label: {
-                        Text("Related to: \(choice.note.title)").lineLimit(1)
-                    }
-                    .buttonStyle(.plain)
-                    .help("Open note")
-                }
-                .font(.system(size: 11))
+    /// ✕ and ✓ act immediately: ✓ creates the reminder or event, ✕ undoes whatever was done.
+    @ViewBuilder private var controls: some View {
+        if working {
+            ProgressView().controlSize(.small)
+        } else if dismissed {
+            Button("Restore") { Task { await model.restore(entry.id) } }
+                .font(.system(size: 12)).buttonStyle(.link)
+        } else {
+            Button { Task { await model.dismiss(entry.id) } } label: { Image(systemName: "xmark.circle") }
+                .help(done ? "Undo and dismiss" : "Dismiss")
                 .foregroundStyle(.secondary)
+            if entry.isAction {
+                Button { Task { await model.approve(entry.id) } } label: {
+                    Image(systemName: done ? "checkmark.circle.fill" : "checkmark.circle")
+                }
+                .help(done ? "Added" : "Add now")
+                .foregroundStyle(done ? Color.green : Color.secondary)
+                .disabled(done)
+            } else if done {
+                Image(systemName: "checkmark.circle.fill").foregroundStyle(.green).help("Saved")
             }
         }
     }
 
-    private var destinationChip: some View {
+    /// What happened or will happen: "Added to Reminders", "Saved to: Brain Dump app", an error.
+    @ViewBuilder private var statusLine: some View {
         Group {
-            if let d = model.destination(for: entry.item) {
-                Label("\(d.text)", systemImage: d.icon)
-            } else {
-                Label("No destination", systemImage: "nosign")
+            switch entry.status {
+            case .failed(let message):
+                Label(message, systemImage: "exclamationmark.triangle").foregroundStyle(.orange)
+            case .working:
+                Label(entry.isAction ? "Adding…" : "Finding where this belongs…", systemImage: "ellipsis")
+            case .dismissed:
+                Label("Dismissed", systemImage: "nosign")
+            case .done where !entry.isAction:
+                noteDestination
+            case .done:
+                Label(entry.result?.summary ?? "Added", systemImage: "checkmark")
+                if let topic = entry.topic { Label("Listed in: \(topic.title)", systemImage: "note.text") }
+            case .pending:
+                if let d = model.destination(for: entry.item) { Label(d.text, systemImage: d.icon) } else {
+                    Label("No destination", systemImage: "nosign")
+                }
+                if let topic = entry.topic { Label("Will be listed in: \(topic.title)", systemImage: "note.text") }
             }
         }
         .font(.system(size: 11))
         .foregroundStyle(.secondary)
-        .help("Where this will go")
+        .lineLimit(2)
+    }
+
+    /// "Saved to: <topic>" with a menu to open it, move it to another topic, or make it a topic of its own.
+    private var noteDestination: some View {
+        let url = entry.result?.openURL
+        let title = entry.topic?.title ?? url.map { ($0.deletingPathExtension().lastPathComponent) } ?? "a new note"
+        return Menu {
+            if let url { Button("Open note") { model.openNote(url) } }
+            Divider()
+            if entry.topic != nil { Button("Make it a new note") { Task { await model.move(entry.id, to: nil) } } }
+            Menu("Move to") {
+                ForEach(model.topics().filter { $0.url != url }.prefix(30), id: \.url) { topic in
+                    Button(topic.title) { Task { await model.move(entry.id, to: topic) } }
+                }
+            }
+        } label: {
+            Label(entry.topic == nil ? "Saved as a new note" : "Saved to: \(title)", systemImage: "note.text")
+                .lineLimit(1)
+                .truncationMode(.tail)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.visible)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .help(entry.topic?.reason ?? "Saved as its own note")
     }
 
     private var kindMenu: some View {
         Menu {
             ForEach(ItemKind.displayCases, id: \.self) { kind in
-                Button {
-                    if entry.item.kind.label != kind.label {
-                        entry.item.kind = kind
-                        model.scanRelated(for: entry.item)
-                    }
-                } label: {
+                Button { Task { await model.changeKind(entry.id, to: kind) } } label: {
                     Label(kind.label, systemImage: kind.symbol)
                 }
             }
@@ -346,6 +392,7 @@ struct ReviewCard: View {
         }
         .menuStyle(.borderlessButton)
         .fixedSize()
+        .disabled(!editable)
     }
 
     private var dueChip: some View {

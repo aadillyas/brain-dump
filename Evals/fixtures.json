@@ -5,13 +5,62 @@
     "now": "2026-11-10T07:45:00-08:00",
     "text": "Okay, recording. Um, so it's Tuesday, I'm on my second coffee and my brain is kind of everywhere, so let's just get it all out. Work stuff first. The roadmap review got moved to Thursday, Hannah already sent the new invite, which honestly is a relief because the slides are nowhere near ready. So I need to finish the roadmap deck by Wednesday night, at least a rough version I can send to Hannah. Oh, and I have to reply to the legal team about the data retention clause today, they've asked twice now and it's getting embarrassing. Yesterday's standup was a mess, Tom and Rachel went back and forth about the API for like twenty minutes, but that's their thing to sort out, not mine. Actually, wait, I did say I'd book a room for the design sync, so I need to do that this morning. Um, personal stuff. I need to call the vet tomorrow to move Biscuit's appointment, because I'll be at the offsite on Friday. And remind myself to buy dishwasher tablets, we're totally out. I already paid the electricity bill last night, so that's off the list. My sister keeps saying we should all go to Portugal next summer, which, sure, maybe, we'll see. Okay, one idea I had in the shower, what if the weekly report was generated automatically from the tickets, like a little digest that writes itself every Friday, that could save the whole team an hour. And, I don't know, I've been feeling like I spend all my time in meetings and never actually build anything, which is kind of bugging me. Anyway. That's it, I think.",
     "gold": [
-      {"kind": "task", "keywords": ["roadmap deck"], "due": {"day": "2026-11-11"}},
-      {"kind": "task", "keywords": ["legal"], "due": {"day": "2026-11-10"}},
-      {"kind": "task", "keywords": ["design sync"], "due": {"day": "2026-11-10"}, "alt": ["reminder"]},
-      {"kind": "reminder", "keywords": ["vet"], "due": {"day": "2026-11-11"}, "alt": ["task"]},
-      {"kind": "reminder", "keywords": ["dishwasher"], "due": null, "alt": ["task"]},
-      {"kind": "idea", "keywords": ["digest"], "due": null},
-      {"kind": "thought", "keywords": ["meetings"], "due": null}
+      {
+        "kind": "todo",
+        "keywords": [
+          "roadmap deck"
+        ],
+        "due": {
+          "day": "2026-11-11"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "legal"
+        ],
+        "due": {
+          "day": "2026-11-10"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "design sync"
+        ],
+        "due": {
+          "day": "2026-11-10"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "vet"
+        ],
+        "due": {
+          "day": "2026-11-11"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "dishwasher"
+        ]
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "digest"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "meetings"
+        ],
+        "due": null
+      }
     ]
   },
   {
@@ -20,7 +69,13 @@
     "now": "2026-11-14T08:20:00+00:00",
     "text": "Morning. Um, Saturday, no alarm, which was lovely. I went for a run along the canal yesterday evening and my knee was fine, so that physio stuff actually worked I guess. Last night we watched that documentary about the deep sea, the one with the glowing squid, and Jamie fell asleep halfway through, as usual. Not much going on today honestly. The kids are at their grandparents until Sunday so the house is weirdly quiet. I was thinking, um, it's strange how fast this year went, it feels like it was March about five minutes ago. Jamie mentioned maybe repainting the hallway at some point, but that's a someday thing, not a this-month thing. I already sent the birthday card to Auntie Rose on Thursday, so that's sorted. The football's on later, might watch, might not. I guess, if I'm honest, I've been worried about Dad since his fall, he says he's fine, but he sounded really tired on the phone. Anyway, I'm going to make pancakes and not think about work at all. Oh, the neighbour's cat got in again and knocked over the plant on the windowsill, it's fine, I cleaned it up already. Right. That's all really, nothing else. Just a slow day.",
     "gold": [
-      {"kind": "thought", "keywords": ["Dad"], "due": null}
+      {
+        "kind": "note",
+        "keywords": [
+          "Dad"
+        ],
+        "due": null
+      }
     ]
   },
   {
@@ -29,17 +84,106 @@
     "now": "2026-11-12T06:55:00-05:00",
     "text": "Okay, it's Thursday, it's going to be a big one so let me just list it. First, I have to send the Henderson proposal before ten, it's basically done, I just need to fix the pricing table. Then I need to call the printer about the brochure proofs, because the colors came out wrong on the last batch. Um, I need to review Priya's pull request today, she's blocked on it. Payroll has to be submitted by Friday at noon or nobody gets paid, so that's important. I also need to renew the domain for the studio site, it expires on the 20th. Oh, and email the accountant the receipts from October, she asked last week. Uh, Marcus is handling the client lunch reservation, he said he's on it, so I don't need to touch that. I've got the dentist at four thirty today, I can't miss it again. I need to pick up the dry cleaning tomorrow after work. And buy a present for Leo's party on Saturday, something Lego probably. Then I should update the team on the new holiday schedule at the Monday meeting. Let me think, what else. I fixed the wifi in the office yesterday, finally, so that's done. And we talked about moving to a four day week, which is a bigger conversation, not for today. Okay, and for the newsletter, what if each issue featured one client's behind the scenes story, like a mini case study? That could be good. Right, go.",
     "gold": [
-      {"kind": "task", "keywords": ["Henderson"], "due": {"day": "2026-11-12", "time": "10:00"}},
-      {"kind": "task", "keywords": ["printer"], "due": {"day": "2026-11-12"}},
-      {"kind": "task", "keywords": ["pull request"], "due": {"day": "2026-11-12"}},
-      {"kind": "task", "keywords": ["Payroll"], "due": {"day": "2026-11-13", "time": "12:00"}},
-      {"kind": "task", "keywords": ["domain"], "due": {"day": "2026-11-20"}},
-      {"kind": "task", "keywords": ["accountant"], "due": {"day": "2026-11-12"}},
-      {"kind": "reminder", "keywords": ["dentist"], "due": {"day": "2026-11-12", "time": "16:30"}, "alt": ["task"]},
-      {"kind": "reminder", "keywords": ["dry cleaning"], "due": {"day": "2026-11-13"}, "alt": ["task"]},
-      {"kind": "reminder", "keywords": ["Leo"], "due": {"day": "2026-11-14"}, "alt": ["task"]},
-      {"kind": "task", "keywords": ["holiday schedule"], "due": {"day": "2026-11-16"}},
-      {"kind": "idea", "keywords": ["newsletter"], "due": null}
+      {
+        "kind": "todo",
+        "keywords": [
+          "Henderson"
+        ],
+        "due": {
+          "day": "2026-11-12",
+          "time": "10:00"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "printer"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "pull request"
+        ],
+        "due": {
+          "day": "2026-11-12"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "Payroll"
+        ],
+        "due": {
+          "day": "2026-11-13",
+          "time": "12:00"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "domain"
+        ],
+        "due": {
+          "day": "2026-11-20"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "accountant"
+        ]
+      },
+      {
+        "kind": "event",
+        "keywords": [
+          "dentist"
+        ],
+        "due": {
+          "day": "2026-11-12",
+          "time": "16:30"
+        },
+        "alt": [
+          "todo"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "dry cleaning"
+        ],
+        "due": {
+          "day": "2026-11-13"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "Leo"
+        ],
+        "due": {
+          "day": "2026-11-14"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "holiday schedule"
+        ],
+        "due": {
+          "day": "2026-11-16"
+        },
+        "alt": [
+          "event"
+        ]
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "newsletter"
+        ],
+        "due": null
+      }
     ]
   },
   {
@@ -48,12 +192,53 @@
     "now": "2026-11-16T09:10:00+01:00",
     "text": "So, um, I didn't sleep much, I kept thinking about the novel. I think the problem with the second act is that Mira doesn't want anything, she just reacts to stuff, and that's why it drags. That's the thing I need to sit with. Maybe the whole book should be told backwards, starting with the fire and then going back, like peeling an onion. I don't know if that's genius or terrible. Also I had this idea for a little app, a journal that only lets you write one sentence a day, and at the end of the year it prints them as a tiny book. That would be such a nice gift. Um, the cafe downstairs changed their beans and it's worse now, which is a tragedy, but whatever. I read an article yesterday about how most writers only write two hours a day, and honestly, that made me feel better about myself. I wondered about applying for that residency in Lisbon, but the deadline passed in October, so, no. It's a weird feeling, being thirty five and still not sure if this counts as a career. I think I'm happier when I'm not checking my sales numbers every morning, so I should stop doing that. Oh, one practical thing, I need to send the chapter edits to Jonas by Wednesday, he's been patient. And then the rest of today, honestly, just writing. Maybe a walk at lunch. Okay.",
     "gold": [
-      {"kind": "thought", "keywords": ["second act"], "due": null, "alt": ["idea"]},
-      {"kind": "idea", "keywords": ["backwards"], "due": null, "alt": ["thought"]},
-      {"kind": "idea", "keywords": ["one sentence"], "due": null},
-      {"kind": "thought", "keywords": ["career"], "due": null},
-      {"kind": "thought", "keywords": ["sales numbers"], "due": null, "alt": ["task", "reminder"]},
-      {"kind": "task", "keywords": ["Jonas"], "due": {"day": "2026-11-18"}}
+      {
+        "kind": "note",
+        "keywords": [
+          "second act"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "backwards"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "one sentence"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "career"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "sales numbers"
+        ],
+        "due": null,
+        "alt": [
+          "todo"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "Jonas"
+        ],
+        "due": {
+          "day": "2026-11-18"
+        }
+      }
     ]
   },
   {
@@ -62,13 +247,59 @@
     "now": "2026-11-18T06:30:00-06:00",
     "text": "Okay, quick one before the kids wake up. Um, I'm on the late shift tonight, so the day is kind of upside down. I need to sign Ella's permission slip for the zoo trip, it's due tomorrow. Oh, Sam's swimming lesson got cancelled this week, the pool's closed, so we don't need to go. I have to renew my nursing license, it runs out at the end of the month, and I keep putting it off. Um, my mother in law is visiting next weekend, I mean, Dave's organizing all that, he's sorting the guest room. I really need to book the car in for its service, the light came on last week. Also, call the school about the bus pickup time, it changed and nobody told us. I wonder if we should get a dog. The kids would love it. But not right now, obviously, with everything going on. I already ordered the new winter boots on Monday, they should arrive Friday. I've noticed I'm way more patient with my patients than with my own kids at the end of the day, and that makes me feel kind of guilty. Oh, here's something, the ward could have a shared playlist for night shifts, like everyone adds a song, that'd be a nice morale thing. And text Maria back today about coffee on Saturday, she wants to know if we're still on. Okay, I hear footsteps, that's it.",
     "gold": [
-      {"kind": "reminder", "keywords": ["permission slip"], "due": {"day": "2026-11-19"}, "alt": ["task"]},
-      {"kind": "task", "keywords": ["license"], "due": {"day": "2026-11-30"}, "alt": ["reminder"]},
-      {"kind": "reminder", "keywords": ["service"], "due": null, "alt": ["task"]},
-      {"kind": "reminder", "keywords": ["bus"], "due": null, "alt": ["task"]},
-      {"kind": "thought", "keywords": ["guilty"], "due": null},
-      {"kind": "idea", "keywords": ["playlist"], "due": null},
-      {"kind": "reminder", "keywords": ["Maria"], "due": {"day": "2026-11-18"}, "alt": ["task"]}
+      {
+        "kind": "todo",
+        "keywords": [
+          "permission slip"
+        ],
+        "due": {
+          "day": "2026-11-19"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "license"
+        ],
+        "due": {
+          "day": "2026-11-30"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "service"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "bus"
+        ]
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "guilty"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "playlist"
+        ],
+        "due": null
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "Maria"
+        ],
+        "due": {
+          "day": "2026-11-18"
+        }
+      }
     ]
   },
   {
@@ -77,14 +308,73 @@
     "now": "2026-11-20T08:05:00-08:00",
     "text": "Alright, Friday, um, let's do this. So the big thing today is the release, we're cutting the build at three, and I need to finish the migration script before then, no excuses. Actually, no, wait, Kenji said he'd finish the migration script, I'm doing the rollback plan, right, so I need to write the rollback plan before three. Then I need to update the status page copy for the outage last week, the postmortem's done but the page still says investigating. I talked to Priya yesterday about the flaky tests and she's going to rewrite the fixtures, so that's hers. I should ask Dmitri for access to the billing dashboard, I've been meaning to for like a week. Um, what else. Personal stuff. Mom's flight lands Sunday at six in the evening, I need to pick her up from the airport. I need to get a haircut this weekend before the wedding, it's getting ridiculous. I renewed my passport already, so that's fine. Oh, I keep thinking about how our on call rotation is basically burning everyone out, like three people quit this year and nobody connects it to on call. That really bugs me. Idea, we could build an internal tool that summarises the overnight alerts into a single morning message, so whoever's on call doesn't wake up to forty pings. Honestly, that could be a hack week project. And the team offsite, maybe we do it somewhere outdoors this time, like a cabin, but that's Lena's call. Okay, also I need to cancel the gym membership before it renews on the first. Right, that's the list.",
     "gold": [
-      {"kind": "task", "keywords": ["rollback"], "due": {"day": "2026-11-20", "time": "15:00"}},
-      {"kind": "task", "keywords": ["status page"], "due": {"day": "2026-11-20"}},
-      {"kind": "task", "keywords": ["Dmitri"], "due": {"day": "2026-11-20"}, "alt": ["reminder"]},
-      {"kind": "reminder", "keywords": ["airport"], "due": {"day": "2026-11-22", "time": "18:00"}, "alt": ["task"]},
-      {"kind": "reminder", "keywords": ["haircut"], "due": {"day": "2026-11-21"}, "alt": ["task"]},
-      {"kind": "thought", "keywords": ["burning"], "due": null},
-      {"kind": "idea", "keywords": ["alerts"], "due": null},
-      {"kind": "reminder", "keywords": ["gym"], "due": {"day": "2026-12-01"}, "alt": ["task"]}
+      {
+        "kind": "todo",
+        "keywords": [
+          "rollback"
+        ],
+        "due": {
+          "day": "2026-11-20",
+          "time": "15:00"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "status page"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "Dmitri"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "airport"
+        ],
+        "due": {
+          "day": "2026-11-22",
+          "time": "18:00"
+        },
+        "alt": [
+          "event"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "haircut"
+        ],
+        "due": {
+          "day": "2026-11-21"
+        }
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "burning"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "alerts"
+        ],
+        "due": null
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "gym"
+        ],
+        "due": {
+          "day": "2026-12-01"
+        }
+      }
     ]
   },
   {
@@ -93,13 +383,62 @@
     "now": "2026-11-23T07:15:00+05:30",
     "text": "Okay, so it's Monday and I have, um, way too much. I need to submit the statistics assignment by Wednesday at midnight, and I haven't even started question four. Also I need to email Professor Fernando about the extension for the lab report, today ideally, before he leaves for the conference. Kasun said he'd book the study room for Thursday, so I don't have to. The group presentation was last Friday and it went fine, actually better than fine. I need to pay the hostel fee by Friday, the office closes at four. Oh and call Amma tonight, she'll be upset if I forget again. Um, I was thinking, there should be an app where students can swap textbooks with each other, like a library but peer to peer, I bet people would use it. Maybe I'll learn Japanese next year, who knows. I'm kind of worried I chose the wrong major, like, I like the coding part but the maths is just draining me. And buy shampoo, I'm out. I already returned the library books on Saturday so no fine, thank god. My roommate keeps leaving dishes in the sink, which, whatever, I'm not going to start a fight about it this week. Right, coffee, then lecture at nine.",
     "gold": [
-      {"kind": "task", "keywords": ["statistics"], "due": {"day": "2026-11-25"}},
-      {"kind": "task", "keywords": ["Fernando"], "due": {"day": "2026-11-23"}},
-      {"kind": "reminder", "keywords": ["hostel"], "due": {"day": "2026-11-27"}, "alt": ["task"]},
-      {"kind": "reminder", "keywords": ["Amma"], "due": {"day": "2026-11-23"}, "alt": ["task"]},
-      {"kind": "idea", "keywords": ["textbooks"], "due": null},
-      {"kind": "thought", "keywords": ["major"], "due": null},
-      {"kind": "reminder", "keywords": ["shampoo"], "due": null, "alt": ["task"]}
+      {
+        "kind": "todo",
+        "keywords": [
+          "statistics"
+        ],
+        "due": {
+          "day": "2026-11-25"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "Fernando"
+        ],
+        "due": {
+          "day": "2026-11-23"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "hostel"
+        ],
+        "due": {
+          "day": "2026-11-27"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "Amma"
+        ],
+        "due": {
+          "day": "2026-11-23"
+        }
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "textbooks"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "major"
+        ],
+        "due": null
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "shampoo"
+        ]
+      }
     ]
   },
   {
@@ -108,14 +447,75 @@
     "now": "2026-11-25T05:50:00-05:00",
     "text": "Right, early one. Uh, the walk in fridge was making that noise again last night, I need to call the refrigeration guy first thing this morning before it dies on us. We've got the Morrison party of forty on Saturday, so I need to place the fish order by Thursday at the latest. Antonio is doing the staff rota this week, he said he'd have it up by tonight, so that's his. I need to taste the new risotto with Carla at eleven and decide if it goes on the menu. I've been thinking about a Sunday supper club, like, one long table, a set menu, local farmers come and talk about their stuff. That could really be something for the off season. Um, the health inspection went well on Monday, ninety eight, which, honestly, amazing. Remind me to pick up Noor's birthday cake from Dalia's bakery on Friday morning. I'm so tired of fighting with the delivery apps over their commission, it feels like we work for them now. I also need to fix the leaking tap in the staff bathroom, or get someone to, it's been weeks. Maybe one day we'll open a second place by the water, but that's a dream, not a plan. Okay, and renew the liquor license, the renewal form is due December first. That's everything.",
     "gold": [
-      {"kind": "task", "keywords": ["refrigeration"], "due": {"day": "2026-11-25"}},
-      {"kind": "task", "keywords": ["fish"], "due": {"day": "2026-11-26"}},
-      {"kind": "task", "keywords": ["risotto"], "due": {"day": "2026-11-25", "time": "11:00"}},
-      {"kind": "idea", "keywords": ["supper"], "due": null},
-      {"kind": "reminder", "keywords": ["cake"], "due": {"day": "2026-11-27"}, "alt": ["task"]},
-      {"kind": "thought", "keywords": ["commission"], "due": null},
-      {"kind": "task", "keywords": ["tap"], "due": {"day": "2026-11-25"}, "alt": ["reminder"]},
-      {"kind": "task", "keywords": ["liquor"], "due": {"day": "2026-12-01"}, "alt": ["reminder"]}
+      {
+        "kind": "todo",
+        "keywords": [
+          "refrigeration"
+        ],
+        "due": {
+          "day": "2026-11-25"
+        }
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "fish"
+        ],
+        "due": {
+          "day": "2026-11-26"
+        }
+      },
+      {
+        "kind": "event",
+        "keywords": [
+          "risotto"
+        ],
+        "due": {
+          "day": "2026-11-25",
+          "time": "11:00"
+        },
+        "alt": [
+          "todo"
+        ]
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "supper"
+        ],
+        "due": null
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "cake"
+        ],
+        "due": {
+          "day": "2026-11-27"
+        }
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "commission"
+        ],
+        "due": null
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "tap"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "liquor"
+        ],
+        "due": {
+          "day": "2026-12-01"
+        }
+      }
     ]
   },
   {
@@ -124,12 +524,53 @@
     "now": "2026-11-28T10:30:00+11:00",
     "text": "So it's Saturday and it's already hot, like, properly hot. I went to the market this morning and got way too many mangoes, as usual. Um, the week was a lot, the Atlas client finally signed off on the logo on Thursday, after six rounds, so that's done and I'm never doing six rounds again. Actually, that's a thing, I should put a revision limit in my contracts, like two rounds and then it's billed hourly. I need to send the Atlas invoice on Monday, I keep forgetting. My brother's moving house next weekend and he asked if I can help, I said probably, we'll see. I think I'm finally getting the hang of freelancing, it's less scary than last year, but I still get that panic when the inbox is empty. Oh, I want to try that thing where I do a weekly illustration and post it, just for fun, no clients, like a sketch diary. The aircon is making a rattling noise again, I need to book someone to look at it before summer really kicks in. Mia's coming over for dinner tonight, she's bringing dessert, I just need to buy wine on the way back. Anyway, I'm going to sit by the pool and do nothing for a bit.",
     "gold": [
-      {"kind": "task", "keywords": ["revision"], "due": {"day": "2026-11-28"}, "alt": ["idea"]},
-      {"kind": "task", "keywords": ["invoice"], "due": {"day": "2026-11-30"}},
-      {"kind": "thought", "keywords": ["panic"], "due": null},
-      {"kind": "idea", "keywords": ["sketch"], "due": null},
-      {"kind": "reminder", "keywords": ["aircon"], "due": null, "alt": ["task"]},
-      {"kind": "reminder", "keywords": ["wine"], "due": {"day": "2026-11-28"}, "alt": ["task"]}
+      {
+        "kind": "todo",
+        "keywords": [
+          "revision"
+        ],
+        "alt": [
+          "note"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "invoice"
+        ],
+        "due": {
+          "day": "2026-11-30"
+        }
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "panic"
+        ],
+        "due": null
+      },
+      {
+        "kind": "note",
+        "keywords": [
+          "sketch"
+        ],
+        "due": null
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "aircon"
+        ]
+      },
+      {
+        "kind": "todo",
+        "keywords": [
+          "wine"
+        ],
+        "due": {
+          "day": "2026-11-28"
+        }
+      }
     ]
   }
 ]

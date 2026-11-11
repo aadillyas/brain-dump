@@ -32,9 +32,7 @@ public struct RemindersConnector: Connector {
         }
     }
 
-    public func handles(_ kind: ItemKind) -> Bool { kind.isActionable }
-
-    public func destination(for item: ExtractedItem) -> String { "Reminders › \(listName ?? "Default")" }
+    public func destination(for item: ExtractedItem, category: ItemCategory) -> String { "Reminders › \(listName ?? "Default")" }
 
     public func execute(_ item: ExtractedItem, context: ActionContext) async throws -> ActionResult {
         let store = EKEventStore()
@@ -61,7 +59,7 @@ public struct RemindersConnector: Connector {
         }
         try store.save(reminder, commit: true)
 
-        var summary = "\(item.kind == .task ? "Task" : "Reminder"): \(item.title)"
+        var summary = "\(context.category.name): \(item.title)"
         if let due = item.due {
             summary += " — " + Self.describe(due, hasTime: item.dueHasTime, now: context.now)
         }

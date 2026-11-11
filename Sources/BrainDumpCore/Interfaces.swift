@@ -50,10 +50,13 @@ public struct NoteRef: Sendable, Codable, Equatable {
 public struct ActionContext: Sendable {
     public let journal: NoteRef
     public let now: Date
+    /// The item's category: its name, notes folder and so on.
+    public let category: ItemCategory
 
-    public init(journal: NoteRef, now: Date) {
+    public init(journal: NoteRef, now: Date, category: ItemCategory) {
         self.journal = journal
         self.now = now
+        self.category = category
     }
 }
 
@@ -76,12 +79,12 @@ public struct ActionResult: Sendable, Identifiable {
     }
 }
 
+/// Each category names one connector through `ItemCategory.destination`, whose raw value is the connector's `id`.
 public protocol Connector: Sendable {
     var id: String { get }
     var name: String { get }
-    func handles(_ kind: ItemKind) -> Bool
     /// Where the item will go, shown on the review card, e.g. "Reminders › Brain Dump".
-    func destination(for item: ExtractedItem) -> String
+    func destination(for item: ExtractedItem, category: ItemCategory) -> String
     func execute(_ item: ExtractedItem, context: ActionContext) async throws -> ActionResult
     func undo(_ result: ActionResult) async throws
 }

@@ -221,13 +221,13 @@ func read(_ url: URL) -> String { (try? String(contentsOf: url, encoding: .utf8)
 
 do {
     try store.prepare()
-    for sub in ["Journal", "Ideas", "Thoughts"] {
+    for sub in ["Journal"] {
         var isDir: ObjCBool = false
         check(FileManager.default.fileExists(atPath: tmp.appendingPathComponent(sub).path, isDirectory: &isDir) && isDir.boolValue, "prepare creates \(sub)")
     }
 
     let journal = try store.writeJournal(text: "First thoughts of the day.", date: day1)
-    check(journal.wikiLink == "Journal/2026-11-11", "journal wikiLink \(journal.wikiLink)")
+    check(journal.wikiLink == "Journal/2026-11-11#07:30", "journal wikiLink \(journal.wikiLink)")
     check(journal.url.lastPathComponent == "2026-11-11.md", "journal filename")
     var text = read(journal.url)
     check(text.hasPrefix("---\ndate: 2026-11-11\ntype: journal\n---\n"), "journal frontmatter")
@@ -235,31 +235,61 @@ do {
     check(text.contains("## 07:30\n\nFirst thoughts of the day."), "journal first section")
 
     let again = try store.writeJournal(text: "Evening addition.", date: day1b)
-    check(again == journal, "same-day journal returns same ref")
+    check(again.url == journal.url && again.wikiLink == "Journal/2026-11-11#21:05", "same-day journal: same file, new section")
     text = read(journal.url)
     check(text.contains("## 21:05\n\nEvening addition."), "journal append section")
     check(text.components(separatedBy: "type: journal").count == 2, "journal frontmatter not duplicated")
     check(text.range(of: "## 07:30")!.lowerBound < text.range(of: "## 21:05")!.lowerBound, "journal sections in order")
 
-    let idea = try store.createNote(kind: .idea, title: "Voice journal app!", body: "What if it was an app", journal: journal, date: day1)
-    check(idea.wikiLink == "Ideas/voice-journal-app", "idea wikiLink \(idea.wikiLink)")
+    let idea = try store.createNote(category: ItemCategory.defaults.category(for: .note)!, title: "Voice journal app!", body: "What if it was an app", journal: journal, date: day1)
+    check(idea.wikiLink == "Notes/voice-journal-app", "idea wikiLink \(idea.wikiLink)")
     let ideaText = read(idea.url)
-    check(ideaText.contains("type: idea"), "idea type")
+    check(ideaText.contains("type: note"), "idea type")
     check(ideaText.contains("created: 2026-11-11T07:30:00"), "idea created iso")
-    check(ideaText.contains("source: \"[[Journal/2026-11-11]]\""), "idea source")
-    check(ideaText.contains("# Voice journal app!\n\nWhat if it was an app\n\nFrom [[Journal/2026-11-11]]"), "idea body and link")
+    check(ideaText.contains("mentions: 1"), "idea mentions")
+    check(ideaText.contains("# Voice journal app!\n\n## Log\n\n### 2026-11-11 07:30 · [[Journal/2026-11-11#07:30]]\n\n> What if it was an app\n"), "idea log entry")
 
-    let dup = try store.createNote(kind: .idea, title: "Voice journal app!", body: "again", journal: journal, date: day1)
-    check(dup.wikiLink == "Ideas/voice-journal-app-2", "slug collision -2, got \(dup.wikiLink)")
-    let dup3 = try store.createNote(kind: .idea, title: "voice journal app", body: "again", journal: journal, date: day1)
-    check(dup3.wikiLink == "Ideas/voice-journal-app-3", "slug collision -3, got \(dup3.wikiLink)")
+    let previous = try store.appendMention(to: idea.url, quote: "Still thinking about the app", journal: again, date: day1b)
+    let merged = read(idea.url)
+    check(previous == ideaText, "appendMention returns previous content")
+    check(merged.contains("mentions: 2") && !merged.contains("mentions: 1"), "mention count bumped")
+    check(merged.contains("updated: 2026-11-11T21:05:00"), "updated bumped")
+    check(merged.components(separatedBy: "updated:").count == 2, "single updated line")
+    let newer = merged.range(of: "Still thinking")!.lowerBound, older = merged.range(of: "What if it was")!.lowerBound
+    check(newer < older, "newest mention first")
+    check(!merged.contains("\n\n\n"), "no triple newlines after merge")
+    try store.restore(idea.url, content: previous)
+    check(read(idea.url) == ideaText, "restore undoes the merge")
 
-    let thought = try store.createNote(kind: .thought, title: "Am I doing enough", body: "Worried", journal: journal, date: day1)
-    check(thought.url.deletingLastPathComponent().lastPathComponent == "Thoughts", "thought folder")
-    check(read(thought.url).contains("type: thought"), "thought type")
-    let odd = try store.createNote(kind: .reminder, title: "???", body: "x", journal: journal, date: day1)
-    check(odd.wikiLink == "Thoughts/note", "empty slug fallback, got \(odd.wikiLink)")
-    let longTitle = try store.createNote(kind: .idea, title: String(repeating: "abcdefghij ", count: 20), body: "x", journal: journal, date: day1)
+    // A note in the format used before living notes gains a Log section.
+    try FileManager.default.createDirectory(at: tmp.appendingPathComponent("Notes"), withIntermediateDirectories: true)
+    let legacy = tmp.appendingPathComponent("Notes/legacy.md")
+    try "---\ntype: idea\ncreated: 2026-11-01T08:00:00Z\nsource: \"[[Journal/2026-11-01]]\"\n---\n\n# Legacy\n\nOld words.\n\nFrom [[Journal/2026-11-01]]\n\n## Related\n\n- [[Notes/x]]\n".write(to: legacy, atomically: true, encoding: .utf8)
+    try store.appendMention(to: legacy, quote: "New words", journal: again, date: day1b)
+    let legacyText = read(legacy)
+    check(legacyText.contains("mentions: 2"), "legacy mentions")
+    check(legacyText.range(of: "## Log")!.lowerBound < legacyText.range(of: "## Related")!.lowerBound, "legacy log before related")
+    check(RelatedNotes.parse(legacyText, fallback: "x").body.contains("New words"), "parse reads log quotes")
+    try FileManager.default.removeItem(at: legacy)
+
+    try store.appendTask(to: idea.url, text: "Build a website — Friday", journal: again, date: day1b)
+    try store.appendTask(to: idea.url, text: "Record intro video", journal: again, date: day1b)
+    let tasked = read(idea.url)
+    check(tasked.contains("## Tasks\n\n- [ ] Build a website — Friday · [[Journal/2026-11-11#21:05]]\n- [ ] Record intro video · [[Journal/2026-11-11#21:05]]\n\n## Log"), "tasks section before log")
+    check(tasked.components(separatedBy: "updated:").count == 2 && tasked.contains("updated: 2026-11-11T21:05:00"), "task bumps updated once")
+    try store.restore(idea.url, content: ideaText)
+
+    let dup = try store.createNote(category: ItemCategory.defaults.category(for: .note)!, title: "Voice journal app!", body: "again", journal: journal, date: day1)
+    check(dup.wikiLink == "Notes/voice-journal-app-2", "slug collision -2, got \(dup.wikiLink)")
+    let dup3 = try store.createNote(category: ItemCategory.defaults.category(for: .note)!, title: "voice journal app", body: "again", journal: journal, date: day1)
+    check(dup3.wikiLink == "Notes/voice-journal-app-3", "slug collision -3, got \(dup3.wikiLink)")
+
+    let thought = try store.createNote(category: ItemCategory.defaults.category(for: .note)!, title: "Am I doing enough", body: "Worried", journal: journal, date: day1)
+    check(thought.url.deletingLastPathComponent().lastPathComponent == "Notes", "note folder")
+    check(read(thought.url).contains("type: note"), "reflection type")
+    let odd = try store.createNote(category: ItemCategory.defaults.category(for: .note)!, title: "???", body: "x", journal: journal, date: day1)
+    check(odd.wikiLink == "Notes/note", "empty slug fallback, got \(odd.wikiLink)")
+    let longTitle = try store.createNote(category: ItemCategory.defaults.category(for: .note)!, title: String(repeating: "abcdefghij ", count: 20), body: "x", journal: journal, date: day1)
     check(longTitle.url.deletingPathExtension().lastPathComponent.count <= 60, "slug max 60")
     check(NotesStore.slug("  Café  --  Déjà Vu! ") == "cafe-deja-vu", "slug folding \(NotesStore.slug("  Café  --  Déjà Vu! "))")
 
@@ -294,8 +324,8 @@ do {
     defer { try? FileManager.default.removeItem(at: root) }
     let store = NotesStore(root: root)
     let j = try store.writeJournal(text: "Walk idea.", date: now)
-    let a = try store.createNote(kind: .idea, title: "Morning walking routine", body: "Walk every morning to clear my head.", journal: j, date: now)
-    let b = try store.createNote(kind: .thought, title: "Quarterly budget", body: "The spreadsheet for the accountant is late.", journal: j, date: now)
+    let a = try store.createNote(category: ItemCategory.defaults.category(for: .note)!, title: "Morning walking routine", body: "Walk every morning to clear my head.", journal: j, date: now)
+    let b = try store.createNote(category: ItemCategory.defaults.category(for: .note)!, title: "Quarterly budget", body: "The spreadsheet for the accountant is late.", journal: j, date: now)
     let found = RelatedNotes.find(title: "Walking before work", quote: "A morning walking habit would clear my head.", root: root)
     check(found.first?.wikiLink == a.wikiLink, "related finds the walking note")
     check(!found.contains { $0.wikiLink == b.wikiLink }, "related skips the unrelated note")
@@ -303,11 +333,11 @@ do {
     try store.addRelatedLink(from: a, to: b)
     try store.addRelatedLink(from: a, to: b)
     var t = try String(contentsOf: a.url, encoding: .utf8)
-    check(t.contains("## Related\n\n- [[Thoughts/quarterly-budget]]\n"), "related section created")
-    check(t.components(separatedBy: "[[Thoughts/quarterly-budget]]").count == 2, "related link not duplicated")
-    try store.addRelatedLink(from: a, to: NoteRef(url: b.url, wikiLink: "Ideas/other"))
+    check(t.contains("## Related\n\n- [[Notes/quarterly-budget]]\n"), "related section created")
+    check(t.components(separatedBy: "[[Notes/quarterly-budget]]").count == 2, "related link not duplicated")
+    try store.addRelatedLink(from: a, to: NoteRef(url: b.url, wikiLink: "Notes/other"))
     t = try String(contentsOf: a.url, encoding: .utf8)
-    check(t.components(separatedBy: "## Related").count == 2 && t.contains("- [[Ideas/other]]"), "second link joins existing section")
+    check(t.components(separatedBy: "## Related").count == 2 && t.contains("- [[Notes/other]]"), "second link joins existing section")
     check(!RelatedNotes.parse(t, fallback: "x").body.contains("Related"), "parse drops related section")
 } catch {
     check(false, "related notes threw: \(error)")
@@ -330,8 +360,70 @@ let tomorrow9 = at(2026, 11, 12, 9)
 check(RemindersConnector.describe(tomorrow9, hasTime: true, now: now, calendar: cal) == "tomorrow 9:00", "describe tomorrow 9:00")
 check(RemindersConnector.describe(at(2026, 11, 13), hasTime: false, now: now, calendar: cal) == "Friday", "describe weekday")
 check(RemindersConnector.describe(at(2026, 11, 20, 15, 30), hasTime: true, now: now, calendar: cal) == "20 Nov 15:30", "describe far date")
-check(RemindersConnector(listName: nil).destination(for: ExtractedItem(kind: .task, title: "t", sentenceIndices: [], quote: "")) == "Reminders › Default", "reminders destination default")
-check(NotesConnector(store: store).destination(for: ExtractedItem(kind: .idea, title: "t", sentenceIndices: [], quote: "")) == "Notes › Ideas", "notes destination")
+check(RemindersConnector(listName: nil).destination(for: ExtractedItem(kind: .todo, title: "t", sentenceIndices: [], quote: ""), category: ItemCategory.defaults[0]) == "Reminders › Default", "reminders destination default")
+check(NotesConnector(store: store).destination(for: ExtractedItem(kind: .note, title: "t", sentenceIndices: [], quote: ""), category: ItemCategory.defaults[2]) == "Notes › Notes", "notes destination")
+
+// MARK: - Legacy folder migration
+
+do {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("bd-migrate-\(UUID().uuidString)")
+    let fm = FileManager.default
+    for sub in ["Ideas", "Reflections", "Notes", "Journal"] { try fm.createDirectory(at: root.appendingPathComponent(sub), withIntermediateDirectories: true) }
+    try "---\ntype: idea\n---\n\n# App\n\n## Related\n\n- [[Reflections/tired]] — energy\n".write(to: root.appendingPathComponent("Ideas/app.md"), atomically: true, encoding: .utf8)
+    try "---\ntype: reflection\n---\n\n# Tired\n\n## Related\n\n- [[Ideas/app]] — energy\n".write(to: root.appendingPathComponent("Reflections/tired.md"), atomically: true, encoding: .utf8)
+    try "---\ntype: note\n---\n\n# Existing app\n".write(to: root.appendingPathComponent("Notes/app.md"), atomically: true, encoding: .utf8)
+    try "# Day\n\nSee [[Ideas/app#Log]] and [[Reflections/tired|me]].\n".write(to: root.appendingPathComponent("Journal/2026-11-01.md"), atomically: true, encoding: .utf8)
+    let moved = try NotesStore(root: root).migrateLegacyFolders()
+    check(moved == 2, "migration moved 2 notes, got \(moved)")
+    check(!fm.fileExists(atPath: root.appendingPathComponent("Ideas").path), "legacy folder removed")
+    let app2 = read(root.appendingPathComponent("Notes/app-2.md"))
+    check(app2.contains("type: note") && app2.contains("[[Notes/tired]] — energy"), "migrated note retyped and relinked")
+    check(read(root.appendingPathComponent("Notes/tired.md")).contains("[[Notes/app-2]]"), "links follow clash rename")
+    check(read(root.appendingPathComponent("Journal/2026-11-01.md")).contains("[[Notes/app-2#Log]] and [[Notes/tired|me]]"), "journal links rewritten")
+    check(read(root.appendingPathComponent("Notes/app.md")) == "---\ntype: note\n---\n\n# Existing app\n", "existing note untouched")
+    check(try NotesStore(root: root).migrateLegacyFolders() == 0, "migration is a no-op the second time")
+}
+
+// MARK: - ReviewDigest
+
+do {
+    let root = FileManager.default.temporaryDirectory.appendingPathComponent("bd-review-\(UUID().uuidString)")
+    let fm = FileManager.default
+    for sub in ["Notes", "Journal"] { try fm.createDirectory(at: root.appendingPathComponent(sub), withIntermediateDirectories: true) }
+    func put(_ path: String, _ text: String) throws { try text.write(to: root.appendingPathComponent(path), atomically: true, encoding: .utf8) }
+    var c = Calendar(identifier: .gregorian)
+    c.timeZone = TimeZone(identifier: "UTC")!
+    c.firstWeekday = 2
+    try put("Journal/2026-11-10.md", "---\ntype: journal\n---\n\n# Tuesday 10 November 2026\n\n## 08:00\n\nOne two three four five\n\n### Actions\n\n- To-do: Buy milk — tomorrow 16:00\n- Note added to: Brain Dump app\n\n## 09:30\n\nSix seven\n")
+    try put("Journal/2026-11-11.md", "# Wed\n\n## 07:00\n\nHello there\n\n### Actions\n\n- Event: Call with Jeb — tomorrow 15:00\n")
+    try put("Journal/2026-11-03.md", "# Old\n\n## 07:00\n\nLast week\n\n### Actions\n\n- To-do: Old thing\n")
+    try put("Journal/garbage.md", "## 99:xx\nnonsense")
+    try put("Notes/brain-dump-app.md", "---\ntype: note\ncreated: 2026-11-10T08:00:00Z\nupdated: 2026-11-11T07:00:00Z\nmentions: 2\n---\n\n# Brain Dump app\n\n## Tasks\n\n- [ ] Ship review · [[Journal/2026-11-11]]\n- [x] Done thing\n\n## Log\n\n### 2026-11-11 07:00 · [[Journal/2026-11-11#07:00]]\n\n> Hello there\n> second line\n\n### 2026-11-10 08:00 · [[Journal/2026-11-10#08:00]]\n\n> One two\n\n## Related\n\n- [[Notes/x]]\n")
+    try put("Notes/gym.md", "---\ntype: note\ncreated: 2026-10-01T08:00:00Z\nmentions: 4\n---\n\n# Gym\n\n## Log\n\n### 2026-10-20 08:00 · [[Journal/2026-10-20#08:00]]\n\n> lifted\n")
+    try put("Notes/old.md", "---\ntype: note\ncreated: 2026-06-01T08:00:00Z\nmentions: 9\n---\n\n# Old\n\nbody only\n")
+    try put("Notes/broken.md", "---\nmentions: abc\n# ### ·\n## Log\n### nonsense · [[\n> x\n")
+    let from = c.date(from: DateComponents(year: 2026, month: 11, day: 9))!
+    let to = c.date(from: DateComponents(year: 2026, month: 11, day: 16))!
+    let d = ReviewDigest.build(root: root, from: from, to: to, calendar: c, today: c.date(from: DateComponents(year: 2026, month: 11, day: 12))!)
+    check(d.dumps == 3, "digest dumps, got \(d.dumps)")
+    check(d.words == 5 + 2 + 2, "digest words, got \(d.words)")
+    check(d.daysJournaled == 2, "digest days journaled")
+    check(d.streak == 2, "digest streak, got \(d.streak)")
+    check(d.topics.count == 1 && d.topics[0].title == "Brain Dump app", "digest topics in period")
+    if let t = d.topics.first {
+        check(t.entriesInPeriod == 2 && t.totalMentions == 2, "topic counts")
+        check(t.quotes.map(\.text) == ["Hello there second line", "One two"], "quotes newest first, multi-line joined")
+        check(t.quotes[0].journalLink == "Journal/2026-11-11#07:00", "quote journal link")
+        check(t.openTasks == ["Ship review"], "open tasks only")
+        check(t.isNew, "new this period")
+    }
+    check(d.actions.map(\.kind) == ["Event", "To-do", "Note added to"], "actions newest day first, got \(d.actions.map(\.kind))")
+    check(d.actions.last?.text == "Brain Dump app" && d.actions.count == 3, "actions exclude other weeks")
+    check(d.quiet.map(\.title) == ["Gym"], "quiet topics, got \(d.quiet.map(\.title))")
+    let empty = ReviewDigest.build(root: root, from: c.date(from: DateComponents(year: 2027, month: 1, day: 4))!, to: c.date(from: DateComponents(year: 2027, month: 1, day: 11))!, calendar: c)
+    check(empty.dumps == 0 && empty.topics.isEmpty && empty.actions.isEmpty, "empty week digest")
+    check(ReviewDigest.build(root: root.appendingPathComponent("nope"), from: from, to: to, calendar: c).dumps == 0, "missing root digest")
+}
 
 print("\(total) checks, \(failed) failed")
 exit(failed == 0 ? 0 : 1)

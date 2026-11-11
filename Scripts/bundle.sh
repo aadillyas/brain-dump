@@ -40,6 +40,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>NSMicrophoneUsageDescription</key><string>Brain Dump transcribes your voice on this Mac while you talk through your morning dump.</string>
   <key>NSRemindersFullAccessUsageDescription</key><string>Brain Dump creates reminders from the tasks and reminders you approve.</string>
   <key>NSRemindersUsageDescription</key><string>Brain Dump creates reminders from the tasks and reminders you approve.</string>
+  <key>NSCalendarsFullAccessUsageDescription</key><string>Brain Dump adds the events you approve to your calendar.</string>
+  <key>NSCalendarsUsageDescription</key><string>Brain Dump adds the events you approve to your calendar.</string>
 </dict>
 </plist>
 PLIST

@@ -2,15 +2,8 @@ import BrainDumpCore
 import Foundation
 
 public struct ExtractorOptions: Sendable {
-    public enum Style: String, Sendable {
-        /// The model lists items as JSON with the line numbers they cite.
-        case items
-        /// The model labels every line in order; line numbers are fixed by the grammar.
-        case lines
-    }
-
-    /// nil picks `.lines` for LocalLLM and `.items` for other providers.
-    public var style: Style?
+    /// What the model may label lines as. Only enabled categories should be passed.
+    public var categories: [ItemCategory] = ItemCategory.defaults
     /// Drop items whose title shares no content word with the cited lines (copied few-shot titles, hallucinations).
     public var rejectUnrelatedTitles = true
     public var maxChunkWords = 110
@@ -23,18 +16,17 @@ public struct ExtractorOptions: Sendable {
 }
 
 /// One model answer before validation.
-struct RawItem: Decodable {
+struct RawItem {
     var lines: [Int]
     var kind: String
     var title: String
     var when: String
 }
 
-struct RawAnswer: Decodable {
-    var items: [RawItem]
-}
-
 public struct Extractor: Sendable {
+    /// The first words of a sentence, without leading filler: a title for text with no model-written one.
+    public static func fallbackTitle(_ text: String) -> String { Validator.fallbackTitle(text) }
+
     public let provider: any LLMProvider
     public let now: Date
     public let calendar: Calendar
@@ -52,25 +44,15 @@ public struct Extractor: Sendable {
         let sentences = Segmenter.sentences(in: text)
         let chunks = Segmenter.chunks(sentences, maxWords: options.maxChunkWords, maxLines: options.maxChunkLines)
         var validator = Validator(sentences: sentences, now: now, calendar: calendar, options: options)
-        let style = options.style ?? (provider is LocalLLM ? .lines : .items)
         progress?(0, chunks.count)
         for (index, chunk) in chunks.enumerated() {
             try Task.checkCancellation()
             let lines = chunk.map(\.text)
-            switch style {
-            case .items:
-                let output = try await provider.complete(
-                    turns: ExtractionPrompt.turns(for: lines),
-                    grammar: ExtractionPrompt.grammar(lineCount: lines.count),
-                    maxTokens: options.maxTokensPerChunk)
-                validator.accept(output: output, chunk: chunk, chunkIndex: index)
-            case .lines:
-                let output = try await provider.complete(
-                    turns: LinePrompt.turns(for: lines),
-                    grammar: LinePrompt.grammar(for: lines),
-                    maxTokens: options.maxTokensPerChunk + 8 * lines.count)
-                validator.accept(lineOutput: output, chunk: chunk, chunkIndex: index)
-            }
+            let output = try await provider.complete(
+                turns: LinePrompt.turns(for: lines, categories: options.categories),
+                grammar: LinePrompt.grammar(for: lines, categories: options.categories),
+                maxTokens: options.maxTokensPerChunk + 8 * lines.count)
+            validator.accept(lineOutput: output, chunk: chunk, chunkIndex: index)
             progress?(index + 1, chunks.count)
         }
         return ExtractionResult(sentences: sentences, items: validator.items, rejected: validator.rejected)
@@ -104,27 +86,9 @@ struct Validator {
         }
     }
 
-    mutating func accept(output: String, chunk: [Sentence], chunkIndex: Int) {
-        guard let answer = Self.parse(output) else {
-            rejected.append("chunk \(chunkIndex + 1): unreadable output \(output.prefix(80).debugDescription)")
-            return
-        }
-        for raw in answer.items {
-            if let item = validate(raw, chunk: chunk, chunkIndex: chunkIndex) { items.append(item) }
-        }
-    }
-
-    static func parse(_ output: String) -> RawAnswer? {
-        var text = output.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let start = text.firstIndex(of: "{"), let end = text.lastIndex(of: "}"), start < end {
-            text = String(text[start...end])
-        }
-        return try? JSONDecoder().decode(RawAnswer.self, from: Data(text.utf8))
-    }
-
     mutating func validate(_ raw: RawItem, chunk: [Sentence], chunkIndex: Int) -> ExtractedItem? {
         let label = "chunk \(chunkIndex + 1) \"\(raw.title.prefix(50))\""
-        guard let kind = ItemKind(rawValue: raw.kind.lowercased()) else {
+        guard var category = options.categories.category(for: ItemKind(raw.kind.lowercased())) else {
             rejected.append("\(label): unknown kind \(raw.kind)")
             return nil
         }
@@ -141,7 +105,11 @@ struct Validator {
             return nil
         }
         let cited = lineNumbers.sorted().map { chunk[$0 - 1] }
-        let title = Self.cleanTitle(raw.title)
+        // A labelled line with no title (Apple's model does this for reflections) keeps its label and
+        // borrows the start of the line as its title, flagged low-confidence for review.
+        var title = Self.cleanTitle(raw.title)
+        let untitled = title.isEmpty
+        if untitled { title = Self.cleanTitle(Self.fallbackTitle(cited.map(\.text).joined(separator: " "))) }
         guard !title.isEmpty else {
             rejected.append("\(label): empty title")
             return nil
@@ -153,10 +121,16 @@ struct Validator {
             return nil
         }
         var item = ExtractedItem(
-            kind: kind, title: title, sentenceIndices: cited.map(\.index), quote: quote,
-            lowConfidence: overlap < 0.34)
+            kind: category.kind, title: title, sentenceIndices: cited.map(\.index), quote: quote,
+            lowConfidence: untitled || overlap < 0.34)
 
-        if kind.isActionable { date(&item, when: raw.when, label: label) }
+        if category.isActionable { date(&item, when: raw.when, label: label) }
+        // A calendar event needs a date; without one it is something to do, if a Reminders category exists.
+        if category.destination == .calendar, item.due == nil,
+           let todo = options.categories.first(where: { $0.destination == .reminders }) {
+            category = todo
+            item.kind = todo.kind
+        }
 
         if let dup = items.first(where: { Self.isDuplicate($0, item) }) {
             rejected.append("\(label): duplicate of \"\(dup.title)\"")
@@ -193,13 +167,17 @@ struct Validator {
             item.whenText = found.phrase
             return
         }
-        if item.kind == .task {
-            item.due = calendar.startOfDay(for: now)
-            item.dueHasTime = false
-        }
     }
 
     // MARK: - Text helpers
+
+    /// The first words of a sentence, without leading filler, for an item the model left untitled.
+    static func fallbackTitle(_ text: String) -> String {
+        let filler: Set<String> = ["oh", "um", "uh", "and", "so", "well", "okay", "ok", "honestly", "like", "anyway", "also", "i", "guess", "think", "know"]
+        var words = text.split(whereSeparator: \.isWhitespace).map { $0.trimmingCharacters(in: .punctuationCharacters) }
+        while let first = words.first, filler.contains(first.lowercased()) || first.isEmpty { words.removeFirst() }
+        return words.prefix(8).joined(separator: " ")
+    }
 
     static func cleanTitle(_ title: String) -> String {
         var t = title.trimmingCharacters(in: .whitespacesAndNewlines)

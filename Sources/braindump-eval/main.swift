@@ -31,8 +31,14 @@ struct Args {
     var noCache = false
     var checkCache = false
     var resolve: [String] = []
-    var style: ExtractorOptions.Style?
     var now: String?
+    var appleEcho = true
+    var chunkWords: Int?
+    var match: [String] = []
+    var notesRoot: String?
+    var minScore = RelatedNotes.candidateThreshold
+    var matchEach = false
+    var chunkLines: Int?
 
     init() {
         var it = CommandLine.arguments.dropFirst().makeIterator()
@@ -47,11 +53,19 @@ struct Args {
             case "--check-cache": checkCache = true
             case "--resolve": if let p = it.next() { resolve.append(p) }
             case "--now": now = it.next()
-            case "--style": style = it.next().flatMap(ExtractorOptions.Style.init(rawValue:))
+            case "--apple-no-echo": appleEcho = false
+            case "--match": match = [it.next() ?? "", it.next() ?? ""]
+            case "--notes-root": notesRoot = it.next()
+            case "--match-each": matchEach = true
+            case "--min-score": minScore = it.next().flatMap { Double($0) } ?? minScore
+            case "--chunk-words": chunkWords = it.next().flatMap { Int($0) }
+            case "--chunk-lines": chunkLines = it.next().flatMap { Int($0) }
             default:
                 print("""
-                usage: braindump-eval [--model <id>|cloud] [--split dev|holdout|all] [--verbose] [--only <fixture id>]
-                                      [--fixtures <path>] [--no-cache] [--check-cache] [--style items|lines]
+                usage: braindump-eval [--model <id>|cloud|apple] [--split dev|holdout|all] [--verbose] [--only <fixture id>]
+                                      [--fixtures <path>] [--no-cache] [--check-cache]
+                                      [--chunk-words N] [--chunk-lines N] [--apple-no-echo]
+                                      [--match <title> <quote> --notes-root <dir>]
                 models: \(ModelCatalog.all.map(\.id).joined(separator: ", "))
                 """)
                 exit(a == "--help" || a == "-h" ? 0 : 2)
@@ -183,6 +197,12 @@ func run() async throws {
             print("ANTHROPIC_API_KEY is not set"); exit(2)
         }
         provider = CloudLLM(apiKey: key)
+    } else if args.model == "apple" {
+        guard #available(macOS 26.0, *) else { print("Apple's model needs macOS 26 or later"); exit(2) }
+        if let reason = AppleLLM.availability { print("Apple's model is unavailable: \(reason)"); exit(2) }
+        var options = AppleLLM.Options()
+        options.echo = args.appleEcho
+        provider = AppleLLM(options: options)
     } else {
         guard let model = ModelCatalog.model(id: args.model) else { print("unknown model \(args.model)"); exit(2) }
         if !ModelCatalog.isDownloaded(model) {
@@ -199,6 +219,31 @@ func run() async throws {
         provider = llm
     }
 
+    if args.match.count == 2 {
+        let root = URL(fileURLWithPath: args.notesRoot ?? NSHomeDirectory() + "/BrainDump")
+        let found = RelatedNotes.find(title: args.match[0], quote: args.match[1], root: root,
+                                      folders: ItemCategory.defaults.noteFolders, limit: args.minScore < 0.05 ? 12 : 4,
+                                      minScore: args.minScore)
+        let candidates = found.map { note -> (title: String, excerpt: String) in
+            let raw = (try? String(contentsOf: note.url, encoding: .utf8)) ?? ""
+            return (note.title, RelatedNotes.parse(raw, fallback: note.title).body)
+        }
+        let start = Date()
+        var judged: [NoteJudgement] = []
+        if args.matchEach {
+            for c in candidates {
+                judged += try await Matcher.judge(provider: provider, title: args.match[0], quote: args.match[1], candidates: [c])
+            }
+        } else {
+            judged = try await Matcher.judge(provider: provider, title: args.match[0], quote: args.match[1], candidates: candidates)
+        }
+        for (note, j) in zip(found, judged) {
+            print(String(format: "%.2f  %-9@ %@  — %@", note.score, j.relation.rawValue as NSString, note.wikiLink as NSString, j.reason as NSString))
+        }
+        print(String(format: "%d candidates judged in %.1fs", found.count, Date().timeIntervalSince(start)))
+        await local?.unload()
+        return
+    }
     print("model \(args.model)  split \(args.split)  fixtures \(fixtures.count)")
     print(Score.header)
     var total = Score()
@@ -208,7 +253,8 @@ func run() async throws {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone(fromISO: f.now)
         var extractor = Extractor(provider: provider, now: now, calendar: calendar)
-        extractor.options.style = args.style
+        if let n = args.chunkWords { extractor.options.maxChunkWords = n }
+        if let n = args.chunkLines { extractor.options.maxChunkLines = n }
         await local?.resetStats()
         let start = Date()
         let result = try await extractor.extract(f.text)

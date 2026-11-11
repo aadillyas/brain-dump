@@ -44,3 +44,39 @@ Default: **LFM2.5 1.2B Instruct with R2**, the best measured recall/precision tr
 - Prefix-cache equivalence. `--check-cache` exists (it runs each fixture with and without the cache and diffs the outputs) but was not run. The cache is active: about 80% of prompt tokens are reused on hybrid models via state snapshots.
 - CloudLLM: compiles, never called (no API key).
 - Qwen3.5 2B: not downloaded.
+
+## Apple on-device model vs LFM3 1.7B (2026-11-12)
+
+M2, 8 GB, macOS 27. All 9 fixtures (61 gold items), both on the R2 line-label prompt. Apple's model runs through the
+Foundation Models framework with a runtime guided-generation schema that mirrors the R2 grammar (one entry per line,
+echo of the first words first). Run with `--model apple`.
+
+| Model | Recall | Precision | Kind | Date | Secs (9 dumps) | Download |
+|---|---|---|---|---|---|---|
+| LFM3 1.7B (R2) | 98% | 62% | 85% | 90% | 99 | 1.1 GB |
+| Apple, LinePrompt as-is, 110-word chunks | 90% | 81% | 95% | 87% | 166 | 0 |
+| **Apple, tuned instructions, 220-word / 16-line chunks** | 89% | 83% | 98% | 88% | 151 | 0 |
+
+Apple tuning (dev only, then holdout once): dropping the echo cost 15-30 points of recall; leaving the schema out of the
+prompt broke parsing; bigger chunks were +1 dev hit and ~10% faster. The tuned instructions (thoughts spelled out,
+wishes named as skips) made no measurable difference beyond kind accuracy. Holdout for the final config: recall 81%,
+precision 94% (was 90% / 83% untuned). With 61 items these differences are within noise.
+
+Failure patterns: Apple misses thoughts (feelings and worries with nothing to do) and saves someday wishes as ideas.
+LFM3 finds almost everything but over-extracts (8 items for 1 on `slow-saturday`).
+
+## Categories: To-do / Event / Idea / Reflection (2026-11-12)
+
+Gold relabelled: task and reminder → todo (or event for scheduled occurrences), thought → reflection; undated todos
+no longer default to today. 61 items: 40 todo, 10 reflection, 9 idea, 2 event. Prompt, grammar and Apple schema are
+generated from the category list.
+
+| Model | Recall | Precision | Kind | Date | Secs (9 dumps) |
+|---|---|---|---|---|---|
+| LFM3 1.7B | 100% | 64% | 97% | 87% | 101 |
+| Apple (220-word chunks) | 85% | 85% | 100% | 88% | 231 |
+| **Apple + fallback titles** | **98%** | 76% | **100%** | 89% | 216 |
+
+Apple left titles empty on 22 labelled lines (mostly reflections), which the validator rejected. Untitled labelled lines
+now keep their label and borrow the line's first words as a low-confidence title. Apple is ~2x slower than LFM3 on this
+prompt (longer instructions with per-category examples); worth profiling.
